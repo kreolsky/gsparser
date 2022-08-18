@@ -1,7 +1,7 @@
 from . import tools
 from . import parser
 
-from .parser import config_to_json as dumps
+from .parser import config_to_json as jsonify
 
 """
 gsparser

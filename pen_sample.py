@@ -41,7 +41,7 @@ string_sep = [
     ]
 
 for line in string:
-    data = gsparser.dumps(line, unwrap_list=False, mode='v1')
+    data = gsparser.jsonify(line, unwrap_list=False, mode='v1')
     print(json.dumps(data, indent=4))
     print('------------------------')
 
