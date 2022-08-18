@@ -1,5 +1,5 @@
 import json
-from gsparser import parser
+import gsparser
 
 string = [
     # '{life = {}}',
@@ -41,8 +41,9 @@ string_sep = [
     ]
 
 for line in string:
-    print(json.dumps(parser.config_to_json(line, unwrap_list=False, mode='v2'), indent=4))
-    print('--------------------')
+    data = gsparser.dumps(line, unwrap_list=False, mode='v1')
+    print(json.dumps(data, indent=4))
+    print('------------------------')
 
 
 # for line in string_txt:
