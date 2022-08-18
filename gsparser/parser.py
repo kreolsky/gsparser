@@ -31,17 +31,18 @@ def parse_block(string, **params):
         if line.startswith(raw_pattern):
             out.append(line[1:-1])
 
-        # Проверка наличия блока. Блок всегда начинается с открывающей скобки блока
+        # Проверка наличия блока. Всегда начинается с открывающей скобки блока
         elif line.startswith(br[0]):
             # Отрезаем скобки и парсим содержимое.
-            # Внутренний блок всегда разворачиваем из лишних списков,
-            # иначе лезут паразитные вложения.
-            substring = config_to_json(line[1:-1], _force_unwrap=True, **params) or []
+            # Внутренний блок всегда разворачиваем из списков, иначе паразитные вложения.
+            substring = config_to_json(line[1:-1], _force_unwrap=True, **params)
             out.append(substring)
 
         # Проверка на словарь
         elif sep_dict in line:
             # Когда мы пришли из словаря нужно проверить надо ли его вытаскивать из списка
+            # Для v1 всегда False, никогда не разворачиваем
+            # Для v2 разворачиваем когда ключ не заканчивается на list_marker
             key, substring = tools.split_string_by_sep(line, sep_dict, **params)
             unwrap_it = not key.endswith(list_marker) and is_mode_v2
             key = key.strip(list_marker)
@@ -61,7 +62,7 @@ def parse_block(string, **params):
     return out
 
 
-def config_to_json(string, _force_unwrap=False, **params):
+def config_to_json(string, _force_unwrap=None, **params):
     """
     Парсит строку конфига и складывает результат в список словарей.
     Исходный формат крайне упрощенная и менее формальная версия JSON.
@@ -76,35 +77,10 @@ def config_to_json(string, _force_unwrap=False, **params):
 
     Строка: 'one = two, item = {сount = 4.5, price = 100, name = {name1 = name}}'
     Результат:
-    [
-        {
-            "one": "two",
-            "item": [
-                {
-                    "itemsCount": 4.5,
-                    "price": 100,
-                    "name": [
-                        {
-                            "name1": "my_name"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-
-    ## mode = 'v2'
-    По умолчанию разворачивает все списки единичной длины кроме корневого.
-    Для заворачивания необходимо указать в ключе суффикс '[]'. Суффик будет отрезан
-    ВАЖНО! Опция не заворчивает другие типы данных, только для словарей!
-    См. ключи one[] и name[] в примере
-
-    Строка: 'one[] = two, item = {сount = 4.5, price = 100, name[] = {name1 = name}}'
-    Результат:
-    [
-        {
-            "one": "two",
-            "item": {
+    {
+        "one": "two",
+        "item": [
+            {
                 "itemsCount": 4.5,
                 "price": 100,
                 "name": [
@@ -113,8 +89,32 @@ def config_to_json(string, _force_unwrap=False, **params):
                     }
                 ]
             }
+        ]
+    }
+
+    ## mode = 'v2'
+    По умолчанию разворачивает все списки единичной длины кроме корневого.
+    Для заворачивания необходимо указать в ключе суффикс '[]'.
+    Сам суффик в итоговом JSON будет отрезан.
+    ВАЖНО! Опция заворчивает все типы кроме списков! См. ключи c суффиксом в примере
+
+    Строка: 'one[] = two, item = {сount = 4.5, price = 100, name[] = {n = m, l = o}}'
+    Результат:
+    {
+        "one": [
+            "two"
+        ],
+        "item": {
+            "count": 4.5,
+            "price": 100,
+            "name": [
+                {
+                    "n": "m",
+                    "l": "o"
+                }
+            ]
         }
-    ]
+    }
 
     ## unwrap_list - нужно ли вытаскивать словари из списков единичной длины.
     False (по умолчанию) вытаскивает из списков все обьекты КРОМЕ словарей.
@@ -154,9 +154,8 @@ def config_to_json(string, _force_unwrap=False, **params):
     '"' (двойная кавычка) по умолчанию.
     Строки начинающиеся с символа raw_pattern не парсятся и сохраняются как есть.
 
-    list_marker - только для mode = 'v2'.
-    Суффикс пометки ключа для заворачивания содержимого в словарь.
-    '[]' по умолчанию.
+    list_marker - Суффикс пометки ключа для заворачивания содержимого в словарь.
+    '[]' по умолчанию. Будет отрезан от ключа в любой версии парсера.
 
     is_raw - указание надо ли парсить строку или нет. False по умаолчанию.
     False (по умолчанию) - парсит строку по всем правилам, с учётом raw_pattern.
@@ -170,17 +169,27 @@ def config_to_json(string, _force_unwrap=False, **params):
     is_raw = params.get('is_raw', False)
     unwrap_list = params.get('unwrap_list', False)
 
-    params['br'] = params.get('br', '{}')
-    params['sep_block'] = params.get('sep_block', '|')
-    params['sep_base'] = params.get('sep_base', ',')
-    params['sep_dict'] = params.get('sep_dict', '=')
-    params['raw_pattern'] = params.get('raw_pattern', '"')
-    params['list_marker'] = params.get('list_marker', '[]')
-    params['to_num'] = params.get('to_num', True)
-    params['mode'] = params.get('mode', 'v1')
-
+    # Выйти сразу если не нужно парсить
     if is_raw:
         return string
+
+    unwrap_init_dict = {
+        'v1': True,
+        'v2': True
+        }
+
+    # Только при первом запуске
+    if _force_unwrap is None:
+        params['br'] = params.get('br', '{}')
+        params['sep_block'] = params.get('sep_block', '|')
+        params['sep_base'] = params.get('sep_base', ',')
+        params['sep_dict'] = params.get('sep_dict', '=')
+        params['raw_pattern'] = params.get('raw_pattern', '"')
+        params['list_marker'] = params.get('list_marker', '[]')
+        params['to_num'] = params.get('to_num', True)
+        params['mode'] = params.get('mode', 'v1')
+
+        _force_unwrap = unwrap_init_dict[params['mode']]
 
     out = []
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
@@ -190,9 +199,13 @@ def config_to_json(string, _force_unwrap=False, **params):
     # Для словарей дополнительная проверка, что не нужно разворачивать по умолчанию
     # и что пришли не из разбора словаря
     unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _force_unwrap)
-    unwrap_v2 = params['mode'] == 'v2' and (type(out[0]) not in (dict, ) or _force_unwrap)
-    unwrap_it_now = unwrap_list or unwrap_v1 or unwrap_v2
-    if len(out) == 1 and unwrap_it_now:
+    unwrap_v2 = params['mode'] == 'v2' and (type(out[0]) in (list, ) or _force_unwrap)
+    if len(out) == 1 and (unwrap_list or unwrap_v1 or unwrap_v2):
         return out[0]
+
+    # КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig все заворачивается
+    # в скобки блока. На выход могут попадают массивы с пустой строкой - [""]
+    if type(out) is list and out[0] == '':
+        return []
 
     return out
