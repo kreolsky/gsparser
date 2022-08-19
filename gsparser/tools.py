@@ -10,15 +10,22 @@ def define_split_points(string, sep, **params):
 
     string - исходная строка для разбора
     sep - разделитель. Пример: sep = '|'
-    br - тип скобок выделяющих подблоки. Пример: br = '{}'
+    br_block - тип скобок выделяющих подблоки. Пример: br_block = '{}'
 
     Генератор. Возвращает индексы разделяющих символов.
     """
 
-    br = params['br']
+    br_block = params['br_block']
+    br_list = params['br_list']
     raw_pattern = params['raw_pattern']
 
-    br = {br[0]: 1, br[-1]: -1}
+    # Скобки сгруппированы по типам.
+    # Все увеличивают счетчик, закрывающие - уменьшают
+    br = {
+        f'{br_block[0]}{br_list[0]}': 1,
+        f'{br_block[-1]}{br_list[-1]}': -1
+    }
+
     is_not_raw_block = True
     count = 0
 
@@ -26,8 +33,9 @@ def define_split_points(string, sep, **params):
         if letter is raw_pattern:
             is_not_raw_block = not is_not_raw_block
 
-        if letter in br:
-            count += br[letter]
+        # Если символ в ключах, то проверяем где именно и изменяем счетчик
+        elif letter in ''.join(br.keys()):
+                count += [br[x] for x in br.keys() if letter in x][0]
 
         elif letter == sep and count == 0 and is_not_raw_block:
             yield i

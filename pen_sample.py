@@ -4,7 +4,7 @@ import gsparser
 string = [
     # 'one[] = two, item = {count = 4.5, price = 100, name[] = {n = m, l = o}}',
     # 'one[] = two, item = {itemsCount = 4.5, price = 100.123456, name[] = {name1 = my_name}}'
-    'one[] = two, item = {itemsCount[] = 4.5, price = 100.123456, name = {name1 = my_name, second = other}}, six[] = {name3 = my_thirs_name, second = other}, test = {itemsCount = 4, price = 100, name[] = {{itemsCount = 4, price = 100}, name[] = {count = 4, total = 10}}}, count = 4, total = 10',
+    # 'one[] = two, item = {itemsCount[] = 4.5, price = 100.123456, name = {name1 = my_name, second = other}}, six[] = {name3 = my_thirs_name, second = other}, test = {itemsCount = 4, price = 100, name[] = {{itemsCount = 4, price = 100}, name[] = {count = 4, total = 10}}}, count = 4, total = 10',
     # '9.1, 6.0, 6| 7 = 7, zero = 0, one, two = {2 = dva}, tree = {2 = dva | 3 = tree} | a, b, f',
     # '{9.1, 6.0, 6}, {7 = 7, zero = 0, one, two = {2 = dva}, tree = {{2 = dva}, {3 = tree}}}, {a, b, f}',
     # 'five = {three = 3, two = 2}',
@@ -12,7 +12,7 @@ string = [
     # '{life = {TRUE}}',
     # '8',
     # 9999,
-    # '{""}',
+    # '{}',
     # '0',
     # '8 = 8',
     # '20:00',
@@ -28,8 +28,10 @@ string = [
     # 'minSmallBlind = 0, maxSmallBlind = 3, chipsIdList = ChipsSet_01, chipsPrefix = Chips_1_, chipsAmountList = {1, 5, 10, 10, 10, 25, 25, 50, 50, 50} | minSmallBlind = 3, maxSmallBlind = 12.5, chipsIdList = ChipsSet_02, chipsPrefix = Chips_2_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 12.5, maxSmallBlind = 60, chipsIdList = ChipsSet_03, chipsPrefix = Chips_3_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 60, maxSmallBlind = 300, chipsIdList = ChipsSet_04, chipsPrefix = Chips_4_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 300, maxSmallBlind = 1250, chipsIdList = ChipsSet_05, chipsPrefix = Chips_5_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 1250, maxSmallBlind = 6000, chipsIdList = ChipsSet_06, chipsPrefix = Chips_6_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 6000, maxSmallBlind = 30000, chipsIdList = ChipsSet_07, chipsPrefix = Chips_7_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 30000, maxSmallBlind = 125000, chipsIdList = ChipsSet_08, chipsPrefix = Chips_8_, chipsAmountList = {1, 5, 10, 5, 10, 10, 25, 50, 50, 50} | minSmallBlind = 125000, maxSmallBlind = 350000, chipsIdList = ChipsSet_09, chipsPrefix = Chips_9_, chipsAmountList = {1, 5, 10, 1, 1, 5, 5, 10, 25, 50} | minSmallBlind = 750000, maxSmallBlind = 1000000, chipsIdList = ChipsSet_10, chipsPrefix = Chips_10_, chipsAmountList = {1, 5, 10, 5, 5, 10, 25, 50, 50, 50} | minSmallBlind = 1000000, maxSmallBlind = 999999999999, chipsIdList = ChipsSet_11, chipsPrefix = Chips_11_, chipsAmountList = {1, 5, 10, 5, 5, 5, 10, 25, 50, 50}',
     # '{life = 0}',
     # '{}',
-    # '{0}',
-    # '{[]}',
+    '{{[0, [8, [3, "a", {6: 8}]]], {2 = [8]}}, 9 = ["5"], {[{6: 8}]}}',
+    "{['argh', 'hhh']}",
+    "{['one', ['two', 3, 4], {'one': 'the choose one!'}]}",
+    "{one, {two, 3, 4}, {one = the choose one!}}",
     # 'id = {1000001}, name = {big fast and order}, tribe = {}, atk[] = {10, 30}, hp = {0}'
     ]
 
@@ -51,8 +53,12 @@ for line in string:
     print(json.dumps(data, indent=4))
     print('------------------------')
 
-if '':
-    print('WOW!')
+
+# br2 = {'{[': 1, '}]': -1}
+# l = ']'
+#
+# print(''.join(br2.keys()))
+# print([br2[x] for x in br2.keys() if l in x][0])
 
 # for line in string_txt:
 #     print(json.dumps(config_to_json(line, is_raw=True)))

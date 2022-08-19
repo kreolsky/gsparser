@@ -14,7 +14,7 @@ def parse_block(string, **params):
     Возвращает список с элементами конфига, обычно это словари.
     """
 
-    br = params['br']
+    br_block = params['br_block']
     sep_base = params['sep_base']
     sep_dict = params['sep_dict']
     to_num = params['to_num']
@@ -32,7 +32,7 @@ def parse_block(string, **params):
             out.append(line[1:-1])
 
         # Проверка наличия блока. Всегда начинается с открывающей скобки блока
-        elif line.startswith(br[0]):
+        elif line.startswith(br_block[0]):
             # Отрезаем скобки и парсим содержимое.
             # Внутренний блок всегда разворачиваем из списков, иначе паразитные вложения.
             substring = config_to_json(line[1:-1], _force_unwrap=True, **params)
@@ -135,7 +135,31 @@ def config_to_json(string, _force_unwrap=None, **params):
 
     ## Параметры:
 
-    br - тип скобок выделяющих подблоки. '{}' по умолчанию.
+    br_block - тип скобок выделяющих подблоки. '{}' по умолчанию.
+
+    br_list - тип скобок выделяющих списки. '[]' по умолчанию.
+    ВАЖНО! Нельзя переопределять значение по умолчанию!
+    Внутри допустима любая вложенность, но исключительно в синтаксисе питона.
+    Недопустимо использовать одновременно упрощенный синтаксис и квадратные скобки.
+    Строки обязательно обрамлены кавычками. Словари с полным соблюдением синтаксиса.
+
+    Строка: {['one', ['two', 3, 4], {'one': 'the choose one!'}]}
+    Результат:
+    [
+        "one",
+        [
+            "two",
+            3,
+            4
+        ],
+        {
+            "one": "the choose one!"
+        }
+    ]
+
+    Аналогичного результата можно достигнуть и классическим, упрощенным синтаксисом
+    Строка {one, {two, 3, 4}, {one = the choose one!}} дасть идентичный верхнему результат.
+    Может пригодиться для задания, например, пустых списков или простых конструкций.
 
     sep_base - базовый разделитель элементов. ',' по умолчанию.
 
@@ -180,7 +204,8 @@ def config_to_json(string, _force_unwrap=None, **params):
 
     # Только при первом запуске
     if _force_unwrap is None:
-        params['br'] = params.get('br', '{}')
+        params['br_block'] = params.get('br_block', '{}')
+        params['br_list'] = params.get('br_list', '[]')
         params['sep_block'] = params.get('sep_block', '|')
         params['sep_base'] = params.get('sep_base', ',')
         params['sep_dict'] = params.get('sep_dict', '=')
@@ -203,8 +228,8 @@ def config_to_json(string, _force_unwrap=None, **params):
     if len(out) == 1 and (unwrap_list or unwrap_v1 or unwrap_v2):
         return out[0]
 
-    # КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig все заворачивается
-    # в скобки блока. На выход могут попадают массивы с пустой строкой - [""]
+    # КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig всё заворачивается
+    # в скобки блока и на выход попадают массивы с пустой строкой - [""]
     if type(out) is list and out[0] == '':
         return []
 
