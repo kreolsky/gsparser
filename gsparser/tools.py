@@ -20,7 +20,7 @@ def define_split_points(string, sep, **params):
     raw_pattern = params['raw_pattern']
 
     # Скобки сгруппированы по типам.
-    # Все увеличивают счетчик, закрывающие - уменьшают
+    # Все открывающие увеличивают счетчик, закрывающие - уменьшают
     br = {
         f'{br_block[0]}{br_list[0]}': 1,
         f'{br_block[-1]}{br_list[-1]}': -1

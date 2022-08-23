@@ -41,12 +41,12 @@ def parse_block(string, **params):
         # Проверка на словарь
         elif sep_dict in line:
             # Когда мы пришли из словаря нужно проверить надо ли его вытаскивать из списка
-            # Для v1 всегда False, никогда не разворачиваем
+            # Для v1 всегда False, всегда разворачиваем
             # Для v2 разворачиваем когда ключ не заканчивается на list_marker
             key, substring = tools.split_string_by_sep(line, sep_dict, **params)
+
             unwrap_it = not key.endswith(list_marker) and is_mode_v2
             key = key.strip(list_marker)
-
             out_dict[key] = config_to_json(substring, _force_unwrap=unwrap_it, **params)
 
         # Остались только строки
@@ -93,10 +93,11 @@ def config_to_json(string, _force_unwrap=None, **params):
     }
 
     ## mode = 'v2'
-    По умолчанию разворачивает все списки единичной длины кроме корневого.
+    По умолчанию разворачивает все списки единичной длины.
     Для заворачивания необходимо указать в ключе суффикс '[]'.
     Сам суффик в итоговом JSON будет отрезан.
-    ВАЖНО! Опция заворчивает все типы кроме списков! См. ключи c суффиксом в примере
+    ВАЖНО! Опция заворчивает все типы кроме списков!
+    См. ключи c суффиксом в примере
 
     Строка: 'one[] = two, item = {сount = 4.5, price = 100, name[] = {n = m, l = o}}'
     Результат:
@@ -119,13 +120,14 @@ def config_to_json(string, _force_unwrap=None, **params):
     ## unwrap_list - нужно ли вытаскивать словари из списков единичной длины.
     False (по умолчанию) вытаскивает из списков все обьекты КРОМЕ словарей.
     True - вынимает из список ВСЕ типы обьектов, включая словари.
+    Игнорирует суффикс list_marker (принудительно разворачивает) для mode = v2
 
-    Строка: 'one = two, item = {сount = 4.5, price = 100, name = {name1 = name}}'
+    Строка: 'one[] = two, item = {count = 4.5, price = 100, name[] = {name1 = name}}'
     Результат:
     {
         "one": "two",
         "item": {
-            "itemsCount": 4.5,
+            "count": 4.5,
             "price": 100,
             "name": {
                 "name1": "my_name"
@@ -178,7 +180,7 @@ def config_to_json(string, _force_unwrap=None, **params):
     '"' (двойная кавычка) по умолчанию.
     Строки начинающиеся с символа raw_pattern не парсятся и сохраняются как есть.
 
-    list_marker - Суффикс пометки ключа для заворачивания содержимого в словарь.
+    list_marker - Суффикс пометки ключа для заворачивания содержимого в словарь для v2.
     '[]' по умолчанию. Будет отрезан от ключа в любой версии парсера.
 
     is_raw - указание надо ли парсить строку или нет. False по умаолчанию.
@@ -228,7 +230,8 @@ def config_to_json(string, _force_unwrap=None, **params):
     if len(out) == 1 and (unwrap_list or unwrap_v1 or unwrap_v2):
         return out[0]
 
-    # КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig всё заворачивается
+    # КОСТЫЛЬ!
+    # Последствия того, что перед парсингом в gsconfig всё заворачивается
     # в скобки блока и на выход попадают массивы с пустой строкой - [""]
     if type(out) is list and out[0] == '':
         return []

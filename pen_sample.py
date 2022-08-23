@@ -32,6 +32,7 @@ string = [
     "{['argh', 'hhh']}",
     "{['one', ['two', 3, 4], {'one': 'the choose one!'}]}",
     "{one, {two, 3, 4}, {one = the choose one!}}",
+    'one[] = two, item = {count = 4.5, price = 100, name[] = {name1 = name}}',
     # 'id = {1000001}, name = {big fast and order}, tribe = {}, atk[] = {10, 30}, hp = {0}'
     ]
 
@@ -49,7 +50,7 @@ string_sep = [
     ]
 
 for line in string:
-    data = gsparser.jsonify(line)
+    data = gsparser.jsonify(line, mode='v2')
     print(json.dumps(data, indent=4))
     print('------------------------')
 
