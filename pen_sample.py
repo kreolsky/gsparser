@@ -33,7 +33,7 @@ string = [
     "{['one', ['two', 3, 4], {'one': 'the choose one!'}]}",
     "{one, {two, 3, 4}, {one = the choose one!}}",
     'one[] = two, item = {count = 4.5, price = 100, name[] = {name1 = name}}',
-    # 'id = {1000001}, name = {big fast and order}, tribe = {}, atk[] = {10, 30}, hp = {0}'
+    'id = {1000001}, name = {big fast and order}, tribe = {}, atk[] = {10, 30}, hp = {0}'
     ]
 
 string_txt = [
