@@ -41,8 +41,8 @@ def parse_block(string, **params):
         # Проверка на словарь
         elif sep_dict in line:
             # Когда мы пришли из словаря нужно проверить надо ли его вытаскивать из списка
-            # Для v1 всегда False, всегда разворачиваем
-            # Для v2 разворачиваем когда ключ не заканчивается на list_marker
+            # v1. Всегда False, всегда разворачиваем
+            # v2. Разворачиваем когда ключ не заканчивается на list_marker
             key, substring = tools.split_string_by_sep(line, sep_dict, **params)
 
             unwrap_it = not key.endswith(list_marker) and is_mode_v2
@@ -210,23 +210,21 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
     всегда нужно разворачивать.
     """
 
-    string = str(string)
-    is_raw = params.get('is_raw', False)
-    unwrap_list = params.get('unwrap_list', False)
-
     # Выйти сразу если не нужно парсить
-    if is_raw:
+    if params.get('is_raw', False):
         return string
 
-    unwrap_init_dict = {
-        'v1': True,
-        'v2': True
-        }
+    string = str(string)
+    unwrap_list = params.get('unwrap_list', False)
 
     # Только при первом запуске
     if _force_unwrap is None:
+        unwrap_init_dict = {
+            'v1': True,
+            'v2': True }
+
         params['br_block'] = params.get('br_block', '{}')
-        params['br_list'] = params.get('br_list', '[]')
+        params['br_list'] = params.get('br_list', '[]')  # Вырезать такую возможность?
         params['sep_block'] = params.get('sep_block', '|')
         params['sep_base'] = params.get('sep_base', ',')
         params['sep_dict'] = params.get('sep_dict', '=')
@@ -241,9 +239,14 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
         out.append(parse_block(line, **params))
 
-    # Все списки длины 1 и внутри не словарь разворачиваем по умолчанию.
-    # Для словарей дополнительная проверка, что не нужно разворачивать по умолчанию
-    # и что пришли не из разбора словаря
+    """
+    Проверяем, что нужно разворачивать, а что нет в зависимости от того, какие
+    элементы структуры разбираем. Значения внутри словарей зависит от режима.
+
+    v1. Всё, кроме словарей, разворачиваем по умолчанию
+    v2. Разворачиваем в зависимости от ключа
+    См. parse_block() для деталей
+    """
     unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _force_unwrap)
     unwrap_v2 = params['mode'] == 'v2' and (type(out[0]) in (list, ) or _force_unwrap)
     if len(out) == 1 and (unwrap_list or unwrap_v1 or unwrap_v2):

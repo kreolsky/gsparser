@@ -50,7 +50,7 @@ string_sep = [
     ]
 
 for line in string:
-    data = gsparser.jsonify(line, mode='v2')
+    data = gsparser.jsonify(line, mode='v1')
     print(json.dumps(data, indent=4))
     print('------------------------')
 
