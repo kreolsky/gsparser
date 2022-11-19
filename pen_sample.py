@@ -2,6 +2,7 @@ import json
 import gsparser
 
 string = [
+    '["one", ["two", 3, 4], {"one": "the choose one!"}]',
     'one!list = two, item = {count = 4.5, price = 100, name!list = {n = m, l = o}}',
     'one!list = two, item = {itemsCount = 4.5, price = 100.123456, name!list = {name1 = my_name}}',
     # 'one!list = two, item = {itemsCount!list = 4.5, price = 100.123456, name = {name1 = my_name, second = other}}, six!list = {name3 = my_thirs_name, second = other}, test = {itemsCount = 4, price = 100, name!list = {{itemsCount = 4, price = 100}, name!list = {count = 4, total = 10}}}, count = 4, total = 10',
