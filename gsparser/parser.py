@@ -3,6 +3,32 @@ from . import tools
 # Блок парсера конфигов!
 # Перевод из промежуточного формата конфигов в JSON
 
+def cmd_list(result):
+    if type(result) not in (list, tuple, ):
+        return [result]
+    return result
+
+def cmd_flist(result):
+    return [result]
+
+key_commands = {
+    'list': cmd_list,
+    'flist': cmd_flist,
+}
+
+def parse_command(command, result):
+    """
+    Парсер команд, которые будут применены к содержимому ключа.
+    В данный момент поддерживает команды:
+    'list' -- заворачить содержимое в список если это не список
+    'flist' -- всегда заворачивает в список!
+    """
+
+    if not command:
+        return result
+
+    return key_commands[command](result)
+
 def parse_block(string, **params):
     """
     Используется внутри функции базовой функции config_to_json.
@@ -19,7 +45,6 @@ def parse_block(string, **params):
     sep_dict = params['sep_dict']
     to_num = params['to_num']
     raw_pattern = params['raw_pattern']
-    list_marker = params['list_marker']
     is_mode_v2 = params['mode'] == 'v2'
 
     out = []
@@ -33,22 +58,24 @@ def parse_block(string, **params):
 
         # Проверка наличия блока. Всегда начинается с открывающей скобки блока
         elif line.startswith(br_block[0]):
-            # Отрезаем скобки и парсим содержимое.
-            # Внутренний блок всегда разворачиваем из списков, иначе паразитные вложения.
-            substring = config_to_json(line[1:-1], _force_unwrap=True, **params)
+            # Отрезаем скобки и парсим содержимое
+            # Внутренний блок всегда разворачиваем из списков, иначе паразитные вложения
+            substring = config_to_json(line[1:-1], _unwrap_it=True, **params)
             out.append(substring)
 
         # Проверка на словарь
         elif sep_dict in line:
             # Когда мы пришли из словаря нужно проверить надо ли его вытаскивать из списка
-            # v1. Всегда False, всегда разворачиваем
-            # v2. Разворачиваем когда ключ не заканчивается на list_marker
+            # v1. Всегда False. Никогда НЕ разворачиваем, команды не поддерживает
+            # v2. Всегда True. Разворачиваем и применяем действие переданной команды
+            unwrap_it = True if is_mode_v2 else False
+            command = None
             key, substring = tools.split_string_by_sep(line, sep_dict, **params)
+            if is_mode_v2 and params['sep_func'] in key:
+                key, command = key.split(params['sep_func'])
 
-            unwrap_it = not key.endswith(list_marker) and is_mode_v2
-            key = key.strip(list_marker)
-
-            out_dict[key] = config_to_json(substring, _force_unwrap=unwrap_it, **params)
+            result = config_to_json(substring, _unwrap_it=unwrap_it, **params)
+            out_dict[key] = parse_command(command, result)
 
         # Остались только строки
         else:
@@ -63,7 +90,7 @@ def parse_block(string, **params):
     return out
 
 
-def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
+def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     """
     ## Парсер из конфига в JSON
     Парсит строку конфига и складывает результат в список словарей.
@@ -77,7 +104,7 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
     ## Режимы работы
 
     ### mode = 'v1'. По умолчанию.
-    Все словари будут завернуты в словарь
+    Все словари всегда будут завернуты в список!
 
     Строка: 'one = two, item = {count = 4.5, price = 100, name = {name1 = name}}'
     Результат:
@@ -98,12 +125,11 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
 
     ### mode = 'v2'
     Разворачивает все списки единичной длины.
-    Для заворачивания необходимо указать в ключе суффикс '[]'.
-    Сам суффик в итоговом JSON будет отрезан.
-    ВАЖНО! Опция заворчивает все типы кроме списков!
-    См. ключи c суффиксом в примере
+    Для заворачивания необходимо указать в ключе команду 'list'.
+    Сама команда (все что после указателя команды) в итоговом JSON будет отрезано.
+    см. sep_func указатель
 
-    Строка: 'one[] = two, item = {сount = 4.5, price = 100, name[] = {n = m, l = o}}'
+    Строка: 'one!list = two, item = {сount = 4.5, price = 100, name!list = {n = m, l = o}}'
 
     Результат:
     {
@@ -124,13 +150,13 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
 
     ## Параметры:
 
-    ### unwrap_list
+    ### always_unwrap
     Нужно ли вытаскивать словари из списков единичной длины.
     False (по умолчанию) вытаскивает из списков все обьекты КРОМЕ словарей.
     True - вынимает из список ВСЕ типы обьектов, включая словари.
-    Игнорирует суффикс list_marker (принудительно разворачивает) для mode = v2
+    ВАЖНО! Игнорирует команды mode = v2, если список можно развернуть, он будет развернут!
 
-    Строка: 'one[] = two, item = {count = 4.5, price = 100, name[] = {name1 = name}}'
+    Строка: 'one!list = two, item = {count = 4.5, price = 100, name!list = {name1 = name}}'
 
     Результат:
     {
@@ -174,6 +200,12 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
     Строка {one, {two, 3, 4}, {one = the choose one!}} дасть идентичный верхнему результат.
     Может пригодиться для задания, например, пустых списков или простых конструкций.
 
+    ### sep_func
+    Разделитель, через который пишется дополнительные команды для ключей. '!' по умолчанию.
+
+    Например: key!list означает, что содержимое ключа key обязательно будет списком.
+    ВАЖНО! Заворачивает только НЕ СПИСКИ. Список не будет дополнительно завернут.
+
     ### sep_base
     Базовый разделитель элементов. ',' по умолчанию.
 
@@ -196,16 +228,12 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
     '"' (двойная кавычка) по умолчанию.
     Строки начинающиеся с символа raw_pattern не парсятся и сохраняются как есть.
 
-    ### list_marker
-    Суффикс пометки ключа для заворачивания содержимого в словарь для v2.
-    '[]' по умолчанию. Будет отрезан от ключа в любой версии парсера.
-
     ### is_raw
-    Указание надо ли парсить строку или нет. False по умаолчанию.
+    Указание надо ли парсить строку или нет. False по умолчанию.
     False (по умолчанию) - парсит строку по всем правилам, с учётом raw_pattern.
     True - не парсит, возвращает как есть.
 
-    ### _force_unwrap
+    ### _unwrap_it
     Указатель, что пришли из внутреннего блока который
     всегда нужно разворачивать.
     """
@@ -215,25 +243,25 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
         return string
 
     string = str(string)
-    unwrap_list = params.get('unwrap_list', False)
+    always_unwrap = params.get('always_unwrap', False)
 
     # Только при первом запуске
-    if _force_unwrap is None:
+    if _unwrap_it is None:
         unwrap_init_dict = {
             'v1': True,
             'v2': True }
 
         params['br_block'] = params.get('br_block', '{}')
-        params['br_list'] = params.get('br_list', '[]')  # Вырезать такую возможность?
+        params['br_list'] = '[]'  # Нельзя переопределять формат скобок питонячих списков!
+        params['sep_func'] = params.get('sep_func', '!')  # Дополнительные команды для ключей
         params['sep_block'] = params.get('sep_block', '|')
         params['sep_base'] = params.get('sep_base', ',')
         params['sep_dict'] = params.get('sep_dict', '=')
         params['raw_pattern'] = params.get('raw_pattern', '"')
-        params['list_marker'] = params.get('list_marker', '[]')
         params['to_num'] = params.get('to_num', True)
         params['mode'] = params.get('mode', 'v1')
 
-        _force_unwrap = unwrap_init_dict[params['mode']]
+        _unwrap_it = unwrap_init_dict[params['mode']]
 
     out = []
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
@@ -241,15 +269,15 @@ def config_to_json(string: str, _force_unwrap=None, **params) -> dict:
 
     """
     Проверяем, что нужно разворачивать, а что нет в зависимости от того, какие
-    элементы структуры разбираем. Значения внутри словарей зависит от режима.
+    элементы структуры разбираем. Значения внутри словарей зависит от режима и версии
 
     v1. Всё, кроме словарей, разворачиваем по умолчанию
-    v2. Разворачиваем в зависимости от ключа
+    v2. Всегда разворачиваем. Дополнительные действия зависят от команды в ключе
     См. parse_block() для деталей
     """
-    unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _force_unwrap)
-    unwrap_v2 = params['mode'] == 'v2' and (type(out[0]) in (list, ) or _force_unwrap)
-    if len(out) == 1 and (unwrap_list or unwrap_v1 or unwrap_v2):
+    unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
+    unwrap_v2 = params['mode'] == 'v2'
+    if len(out) == 1 and (always_unwrap or unwrap_v1 or unwrap_v2):
         return out[0]
 
     """
