@@ -268,7 +268,7 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     См. parse_block() для деталей
     """
     unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
-    unwrap_v2 = params['mode'] == 'v2'
+    unwrap_v2 = params['mode'] == 'v2' and _unwrap_it
     if len(out) == 1 and (always_unwrap or unwrap_v1 or unwrap_v2):
         return out[0]
 
