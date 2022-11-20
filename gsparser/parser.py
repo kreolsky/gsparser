@@ -3,6 +3,9 @@ from . import tools
 # Блок парсера конфигов!
 # Перевод из промежуточного формата конфигов в JSON
 
+def cmd_dummy(result):
+    return result
+
 def cmd_list(result):
     if type(result) not in (list, tuple, ):
         return [result]
@@ -12,6 +15,7 @@ def cmd_flist(result):
     return [result]
 
 key_commands = {
+    'dummy': cmd_dummy,
     'list': cmd_list,
     'flist': cmd_flist,
 }
@@ -23,9 +27,6 @@ def parse_command(command, result):
     'list' - заворачить содержимое в список если это не список
     'flist' - всегда заворачивает в список, даже списки!
     """
-
-    if not command:
-        return result
 
     return key_commands[command](result)
 
@@ -63,7 +64,7 @@ def parse_block(string, **params):
             # v1. Всегда False. Никогда НЕ разворачиваем. Команды не поддерживает
             # v2. Всегда True. Разворачиваем и применяем действие переданной команды
             unwrap_it = True if is_mode_v2 else False
-            command = None
+            command = 'dummy'
 
             key, substring = tools.split_string_by_sep(line, params['sep_dict'], **params)
             if is_mode_v2 and params['sep_func'] in key:
