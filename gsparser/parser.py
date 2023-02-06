@@ -243,8 +243,8 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     # Только при первом запуске
     if _unwrap_it is None:
         # Настройка разворачивания самого верхнего уровня
-        init_unwrap = {'v1': True, 'v2': True }
-        _unwrap_it = init_unwrap[params['mode']]
+        # Заложена возможность разных настроек для разных версий парсера
+        _unwrap_it = {'v1': True, 'v2': True }[params['mode']]
 
         params['br_list'] = '[]'  # Нельзя переопределять формат скобок питонячих списков!
         params['br_block'] = params.get('br_block', '{}')
