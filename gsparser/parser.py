@@ -3,23 +3,6 @@ from . import tools
 # Блок парсера конфигов!
 # Перевод из промежуточного формата конфигов в JSON
 
-def cmd_dummy(result):
-    return result
-
-def cmd_list(result):
-    if type(result) not in (list, tuple, ):
-        return [result]
-    return result
-
-def cmd_flist(result):
-    return [result]
-
-key_commands = {
-    'dummy': cmd_dummy,
-    'list': cmd_list,
-    'flist': cmd_flist,
-}
-
 def parse_command(command, result):
     """
     Парсер команд, которые будут применены к содержимому ключа.
@@ -27,6 +10,12 @@ def parse_command(command, result):
     'list' - заворачить содержимое в список если это не список
     'flist' - всегда заворачивает в список, даже списки!
     """
+
+    key_commands = {
+        'dummy': lambda x: x,
+        'list': lambda x: [x] if type(x) not in (list, tuple, ) else x,
+        'flist': lambda x: [x],
+    }
 
     return key_commands[command](result)
 
@@ -73,7 +62,7 @@ def parse_block(string, **params):
             result = config_to_json(substring, _unwrap_it=unwrap_it, **params)
             out_dict[key] = parse_command(command, result)
 
-        # Остались только строки
+        # Остались только простые строки
         else:
             out.append(tools.parse_string(line, params['to_num']))
 
@@ -238,9 +227,8 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
         return string
 
     string = str(string)
-    always_unwrap = params.get('always_unwrap', False)
 
-    # Только при первом запуске
+    # Только при первом запуске. Заполняеет параметры значениями по умолчанию
     if _unwrap_it is None:
         # Настройка разворачивания самого верхнего уровня
         # Заложена возможность разных настроек для разных версий парсера
@@ -254,6 +242,7 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
         params['sep_dict'] = params.get('sep_dict', '=')
         params['raw_pattern'] = params.get('raw_pattern', '"')
         params['to_num'] = params.get('to_num', True)
+        params['always_unwrap'] = params.get('always_unwrap', False)
         params['mode'] = params.get('mode', 'v1')
 
     out = []
@@ -261,7 +250,7 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
         out.append(parse_block(line, **params))
 
     """
-    Проверяем, что нужно разворачивать, а что нет в зависимости от того, какие
+    Проверяем что нужно разворачивать, а что нет в зависимости от того, какие
     элементы структуры разбираем. Значения внутри словарей зависит от режима и версии
 
     v1. Всё, кроме словарей, разворачиваем по умолчанию
@@ -270,12 +259,11 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     """
     unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
     unwrap_v2 = params['mode'] == 'v2' and _unwrap_it
-    if len(out) == 1 and (always_unwrap or unwrap_v1 or unwrap_v2):
+    if len(out) == 1 and (params['always_unwrap'] or unwrap_v1 or unwrap_v2):
         return out[0]
 
     """
-    КОСТЫЛЬ!
-    Последствия того, что перед парсингом в gsconfig всё заворачивается
+    КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig всё заворачивается
     в скобки блока и на выход попадают массивы с пустой строкой - [""]
     """
     if type(out) is list and out[0] == '':
