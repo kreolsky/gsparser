@@ -5,37 +5,43 @@ import ast
 
 def define_split_points(string, sep, **params):
     """
-    Отпределение позиции всех разделяющих строку символов.
-    Игнорирует разделители внутри блоков выделенных скобками br.
+    Define the positions of all separator characters in the string.
+    Ignores separators inside blocks enclosed by brackets.
 
-    string - исходная строка для разбора
-    sep - разделитель. Пример: sep = '|'
-    br_block - тип скобок выделяющих подблоки. Пример: br_block = '{}'
+    Args:
+        string (str): The original string to be parsed.
+        sep (str): The separator. Example: sep = '|'
+        params (dict): Additional parameters, including:
+            - br_block (str): Brackets for highlighting sub-blocks. Example: br_block = '{}'
+            - br_list (str): Brackets for highlighting lists. Example: br_list = '[]'
+            - raw_pattern (str): Raw pattern to avoid parsing. Example: raw_pattern = '!'
 
-    Генератор. Возвращает индексы разделяющих символов.
+    Yields:
+        int: Indices of separator characters.
     """
 
-    br_block = params['br_block']
-    br_list = params['br_list']
-    raw_pattern = params['raw_pattern']
+    br_block = params.get('br_block')
+    br_list = params.get('br_list')
+    raw_pattern = params.get('raw_pattern')
 
-    # Скобки сгруппированы по типам.
-    # Все открывающие увеличивают счетчик, закрывающие - уменьшают
+    # Brackets are grouped by types.
+    # All opening brackets increase the counter, closing brackets decrease it
     br = {
-        f'{br_block[0]}{br_list[0]}': 1,
-        f'{br_block[-1]}{br_list[-1]}': -1
+        br_block[0]: 1,
+        br_block[1]: -1,
+        br_list[0]: 1,
+        br_list[1]: -1
     }
 
     is_not_raw_block = True
     count = 0
 
     for i, letter in enumerate(string):
-        if letter is raw_pattern:
+        if letter == raw_pattern:
             is_not_raw_block = not is_not_raw_block
 
-        # Если символ в ключах, то проверяем где именно и изменяем счетчик
-        elif letter in ''.join(br.keys()):
-                count += [br[x] for x in br.keys() if letter in x][0]
+        elif (delta := br.get(letter)) is not None:
+            count += delta
 
         elif letter == sep and count == 0 and is_not_raw_block:
             yield i
@@ -65,11 +71,16 @@ def parse_string(s, to_num=True):
     Переводит true\false в "правильный" формат для JSON
     """
 
-    if s.lower() in ('none', 'nan', 'null'):
-        return None
+    string_mapping = {
+        'none': None,
+        'nan': None,
+        'null': None,
+        'true': True,
+        'false': False
+    }
 
-    if s.lower() in ('true', 'false'):
-        return s.capitalize()
+    if s.lower() in string_mapping:
+        return string_mapping[s.lower()]
 
     if not to_num:
         return s

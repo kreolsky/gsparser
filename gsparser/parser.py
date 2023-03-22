@@ -21,59 +21,63 @@ def parse_command(command, result):
 
 def parse_block(string, **params):
     """
-    Используется внутри функции базовой функции config_to_json.
-    Парсит блок (фрагмент исходной строки для разбора) разделенный запятыми.
+    Used inside the base function config_to_json.
+    Parses a block (a fragment of the original string to be parsed) separated by commas.
 
-    string - исходная строка для разбора.
-    params - параметры парсинга. См. базоую функцию config_to_json
+    Args:
+        string (str): The original string to be parsed.
+        params (dict): Parsing parameters. See base function config_to_json.
 
-    Возвращает список с элементами конфига, обычно это словари.
+    Returns:
+        list: A list of config elements, usually dictionaries.
     """
 
-    is_mode_v2 = params['mode'] == 'v2'
+    def parse_raw(line):
+        return line[1:-1]
+
+    def parse_block(line):
+        return config_to_json(line[1:-1], _unwrap_it=True, **params)
+
+    def parse_dict(line):
+        unwrap_it = params.get('mode') == 'v2'
+        command = 'dummy'
+
+        key, substring = tools.split_string_by_sep(line, params['sep_dict'], **params)
+        if unwrap_it and params['sep_func'] in key:
+            key, command = key.split(params['sep_func'])
+
+        result = config_to_json(substring, _unwrap_it=unwrap_it, **params)
+        out_dict[key] = parse_command(command, result)
+
+    def parse_string(line):
+        return tools.parse_string(line, params['to_num'])
+
     out = []
     out_dict = {}
 
-    # Строка делится на фрагменты по базовому разделителю элементов
+    # Define a mapping of conditions to corresponding parsing functions
+    condition_mapping = {
+        lambda line: line.startswith(params['raw_pattern']): parse_raw,
+        lambda line: line.startswith(params['br_block'][0]): parse_block,
+        lambda line: params['sep_dict'] in line: parse_dict
+    }
+
+    # Split the string into fragments by the base separator
     for line in tools.split_string_by_sep(string, params['sep_base'], **params):
-        # Нужно ли вообще парсить фрагмент или вернуть как есть
-        if line.startswith(params['raw_pattern']):
-            out.append(line[1:-1])
-
-        # Проверка наличия блока. Всегда начинается с открывающей скобки блока
-        elif line.startswith(params['br_block'][0]):
-            # Отрезаем скобки и парсим содержимое
-            # Внутренний блок всегда разворачиваем из списков, иначе паразитные вложения
-            substring = config_to_json(line[1:-1], _unwrap_it=True, **params)
-            out.append(substring)
-
-        # Проверка на словарь
-        elif params['sep_dict'] in line:
-            # Когда мы пришли из словаря нужно проверить надо ли его вытаскивать из списка
-            # v1. Всегда False. Никогда НЕ разворачиваем. Команды не поддерживает
-            # v2. Всегда True. Разворачиваем и применяем действие переданной команды
-            unwrap_it = True if is_mode_v2 else False
-            command = 'dummy'
-
-            key, substring = tools.split_string_by_sep(line, params['sep_dict'], **params)
-            if is_mode_v2 and params['sep_func'] in key:
-                key, command = key.split(params['sep_func'])
-
-            result = config_to_json(substring, _unwrap_it=unwrap_it, **params)
-            out_dict[key] = parse_command(command, result)
-
-        # Остались только простые строки
+        # Iterate through conditions and execute the corresponding function if the condition is True
+        for condition, action in condition_mapping.items():
+            if condition(line):
+                result = action(line)
+                if result is not None:
+                    out.append(result)
+                break
         else:
-            out.append(tools.parse_string(line, params['to_num']))
+            out.append(parse_string(line))
 
     if out_dict:
         out.append(out_dict)
 
-    if len(out) == 1:
-        return out[0]
-
-    return out
-
+    return out[0] if len(out) == 1 else out
 
 def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     """
@@ -230,20 +234,20 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
 
     # Только при первом запуске. Заполняеет параметры значениями по умолчанию
     if _unwrap_it is None:
-        # Настройка разворачивания самого верхнего уровня
-        # Заложена возможность разных настроек для разных версий парсера
-        _unwrap_it = {'v1': True, 'v2': True }[params['mode']]
-
-        params['br_list'] = '[]'  # Нельзя переопределять формат скобок питонячих списков!
-        params['br_block'] = params.get('br_block', '{}')
-        params['sep_func'] = params.get('sep_func', '!')
-        params['sep_block'] = params.get('sep_block', '|')
-        params['sep_base'] = params.get('sep_base', ',')
-        params['sep_dict'] = params.get('sep_dict', '=')
-        params['raw_pattern'] = params.get('raw_pattern', '"')
-        params['to_num'] = params.get('to_num', True)
-        params['always_unwrap'] = params.get('always_unwrap', False)
-        params['mode'] = params.get('mode', 'v1')
+        _unwrap_it = {'v1': True, 'v2': True}[params['mode']]
+        default_params = {
+            'br_list': '[]',
+            'br_block': '{}',
+            'sep_func': '!',
+            'sep_block': '|',
+            'sep_base': ',',
+            'sep_dict': '=',
+            'raw_pattern': '"',
+            'to_num': True,
+            'always_unwrap': False,
+            'mode': 'v1',
+        }
+        params = {**default_params, **params}
 
     out = []
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
@@ -266,7 +270,7 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
     КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig всё заворачивается
     в скобки блока и на выход попадают массивы с пустой строкой - [""]
     """
-    if type(out) is list and out[0] == '':
+    if isinstance(out, list) and out[0] == '':
         return []
 
     return out

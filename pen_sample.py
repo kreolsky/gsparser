@@ -2,6 +2,9 @@ import json
 import gsparser
 
 string = [
+    '0, 6| 7 = 7, zr = 0, one, tw = {2 = d}, tv = {2 = dv | 3 = tr} | a, b',
+    'i = nan, p = 100, {t = 4, e = 100, n = {{m = 4, r = 100}, n = name}}',
+    '{i = 4, p = 100}, {t = 4, e = 100, n = {{m = 4, r = 100}, n = name}}',
     '[]',
     '',
     '["one", ["two", 3, 4], {"one": "the choose one!"}]',
@@ -54,16 +57,9 @@ string_sep = [
     ]
 
 for line in string:
-    data = gsparser.jsonify(line, mode='v2')
+    data = gsparser.jsonify(line, mode='v2', sep_base=',')
     print(json.dumps(data, indent=4))
     print('------------------------')
 
-
-# br2 = {'{[': 1, '}]': -1}
-# l = ']'
-#
-# print(''.join(br2.keys()))
-# print([br2[x] for x in br2.keys() if l in x][0])
-
-# for line in string_txt:
-#     print(json.dumps(config_to_json(line, is_raw=True)))
+for line in string_txt:
+    print(json.dumps(gsparser.jsonify(line, is_raw=True)))
