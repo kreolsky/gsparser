@@ -234,7 +234,6 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
 
     # Только при первом запуске. Заполняеет параметры значениями по умолчанию
     if _unwrap_it is None:
-        _unwrap_it = {'v1': True, 'v2': True}[params['mode']]
         default_params = {
             'br_list': '[]',
             'br_block': '{}',
@@ -248,6 +247,7 @@ def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
             'mode': 'v1',
         }
         params = {**default_params, **params}
+        _unwrap_it = {'v1': True, 'v2': True}[params['mode']]
 
     out = []
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
