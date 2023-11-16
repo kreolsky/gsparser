@@ -49,7 +49,7 @@ strings_in = [
     ]
 
 
-string_txt = [
+strings_txt = [
     '<color=#6aefff>New round</color> has | begun',
     '{0} made a <color=#B451E9>bet</color> {1}',
     ]
@@ -59,4 +59,4 @@ converter = ConfigJSONConverter({'mode': 'v2'})
 
 for string in strings_in:
     result = converter.jsonify(string)
-    print(print(json.dumps(result, indent=4)))
+    print(json.dumps(result, indent=4))

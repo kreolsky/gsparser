@@ -2,7 +2,6 @@ from . import tools
 from . import parser
 
 from .parser import jsonify
-
 from. classes import CommandParser, BlockParser, ConfigJSONConverter
 
 """

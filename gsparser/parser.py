@@ -120,7 +120,7 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
     Сама команда (все что после указателя команды) в итоговом JSON будет отрезано.
     см. sep_func указатель
 
-    Строка: 'one!list = two, item = {сount = 4.5, price = 100, name!list = {n = m, l = o}}'
+    Строка: 'one!list = two, item = {count = 4.5, price = 100, name!list = {n = m, l = o}}'
 
     Результат:
     {

@@ -76,26 +76,44 @@ class ConfigJSONConverter:
             'mode': 'v1',
         }
         self.params = {**self.default_params, **(params or {})}
-        self.block_parser = BlockParser(self.params)
+        self.parser = BlockParser(self.params)
 
     def jsonify(self, string: str, is_raw: bool = False, _unwrap_it = None) -> dict:
+        # Для сырых строк возвращаем без изменений
+        # Необходимо когда иметь мешанина из разных типов строк
+        # Пожалуй, это плохое решение
         if is_raw:
             return string
 
         string = str(string)
 
+        # Да, всегда True. Была идея что для разных версий могут быть разные условия
+        # Но, кажется, это не актуально и (можно|нужно) выпилить и 
+        # использовать True по умолчанию
         if _unwrap_it is None:
             _unwrap_it = {'v1': True, 'v2': True}[self.params['mode']]
 
         out = []
         for line in tools.split_string_by_sep(string, self.params['sep_block'], **self.params):
-            out.append(self.block_parser.parse_block(line, self))
+            out.append(self.parser.parse_block(line, self))
 
+        """
+        Проверяем что нужно разворачивать, а что нет в зависимости от того, какие
+        элементы структуры разбираем. Значения внутри словарей зависит от режима и версии
+
+        v1. Всё, кроме словарей, разворачиваем по умолчанию
+        v2. Всегда разворачиваем. Дополнительные действия зависят от команды в ключе
+        См. parse_block() для деталей
+        """
         unwrap_v1 = self.params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
         unwrap_v2 = self.params['mode'] == 'v2' and _unwrap_it
         if len(out) == 1 and (self.params['always_unwrap'] or unwrap_v1 or unwrap_v2):
             return out[0]
 
+        """
+        КОСТЫЛЬ! Последствия того, что перед парсингом в gsconfig всё заворачивается
+        в скобки блока и на выход попадают массивы с пустой строкой - [""]
+        """
         if isinstance(out, list) and out[0] == '':
             return []
 
