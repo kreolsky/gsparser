@@ -1,5 +1,5 @@
 import json
-import gsparser
+from gsparser import ConfigJSONConverter
 import os
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -54,31 +54,9 @@ string_txt = [
     '{0} made a <color=#B451E9>bet</color> {1}',
     ]
 
-mode = 'v2'
-for line in strings_in:
-    data = gsparser.jsonify(line, mode=mode)
-    print(json.dumps(data, indent=4))
-    print('------------------------')
+# Usage example:
+converter = ConfigJSONConverter({'mode': 'v2'})
 
-for line in string_txt:
-    print(json.dumps(gsparser.jsonify(line, is_raw=True)))
-    print('------------------------')
-
-# Сохранить результаты парсинга как тесты
-# out = []
-# modes = ['v1', 'v2']
-# for mode in modes:
-#     strings_out = []
-#     for line in strings_in:
-#         data = gsparser.jsonify(line, mode=mode)
-#         strings_out.append(data)
-#
-#     bufer = {
-#         'mode': mode,
-#         'data': list(zip(strings_in, strings_out))
-#     }
-#     out.append(bufer)
-#
-# print(json.dumps(out, indent=4))
-# with open("test_cases.json", "w") as f:
-#     json.dump(out, f, indent=4)
+for string in strings_in:
+    result = converter.jsonify(string)
+    print(print(json.dumps(result, indent=4)))

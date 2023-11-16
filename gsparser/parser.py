@@ -21,12 +21,12 @@ def parse_command(command, result):
 
 def parse_block(string, **params):
     """
-    Used inside the base function config_to_json.
+    Used inside the base function jsonify.
     Parses a block (a fragment of the original string to be parsed) separated by commas.
 
     Args:
         string (str): The original string to be parsed.
-        params (dict): Parsing parameters. See base function config_to_json.
+        params (dict): Parsing parameters. See base function jsonify.
 
     Returns:
         list: A list of config elements, usually dictionaries.
@@ -35,18 +35,20 @@ def parse_block(string, **params):
     def parse_raw(line):
         return line[1:-1]
 
-    def parse_block(line):
-        return config_to_json(line[1:-1], _unwrap_it=True, **params)
+    def parse_nested_block(line):
+        return jsonify(line[1:-1], _unwrap_it=True, **params)
 
     def parse_dict(line):
+        # For v1, always wrap dictionaries from the list
+        # For v2, unwrap, then depends on the command in the key
         unwrap_it = params.get('mode') == 'v2'
         command = 'dummy'
 
         key, substring = tools.split_string_by_sep(line, params['sep_dict'], **params)
+        result = jsonify(substring, _unwrap_it=unwrap_it, **params)
+
         if unwrap_it and params['sep_func'] in key:
             key, command = key.split(params['sep_func'])
-
-        result = config_to_json(substring, _unwrap_it=unwrap_it, **params)
         out_dict[key] = parse_command(command, result)
 
     def parse_string(line):
@@ -58,7 +60,7 @@ def parse_block(string, **params):
     # Define a mapping of conditions to corresponding parsing functions
     condition_mapping = {
         lambda line: line.startswith(params['raw_pattern']): parse_raw,
-        lambda line: line.startswith(params['br_block'][0]): parse_block,
+        lambda line: line.startswith(params['br_block'][0]): parse_nested_block,
         lambda line: params['sep_dict'] in line: parse_dict
     }
 
@@ -79,7 +81,7 @@ def parse_block(string, **params):
 
     return out[0] if len(out) == 1 else out
 
-def config_to_json(string: str, _unwrap_it=None, **params) -> dict:
+def jsonify(string: str, _unwrap_it=None, **params) -> dict:
     """
     ## Парсер из конфига в JSON
     Парсит строку конфига и складывает результат в список словарей.
