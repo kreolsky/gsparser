@@ -54,9 +54,9 @@ string_txt = [
     '{0} made a <color=#B451E9>bet</color> {1}',
     ]
 
-mode = 'v2'
+version = 'v2'
 for line in strings_in:
-    data = gsparser.jsonify(line, mode=mode)
+    data = gsparser.jsonify(line, version=version)
     print(json.dumps(data, indent=4))
     print('------------------------')
 
@@ -66,15 +66,15 @@ for line in string_txt:
 
 # Сохранить результаты парсинга как тесты
 # out = []
-# modes = ['v1', 'v2']
-# for mode in modes:
+# versions = ['v1', 'v2']
+# for version in versions:
 #     strings_out = []
 #     for line in strings_in:
-#         data = gsparser.jsonify(line, mode=mode)
+#         data = gsparser.jsonify(line, version=version)
 #         strings_out.append(data)
 #
 #     bufer = {
-#         'mode': mode,
+#         'version': version,
 #         'data': list(zip(strings_in, strings_out))
 #     }
 #     out.append(bufer)

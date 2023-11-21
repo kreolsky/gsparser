@@ -23,7 +23,7 @@ class BlockParser:
         return converter.jsonify(line[1:-1], _unwrap_it=True)
 
     def parse_dict(self, line, out_dict, converter):
-        unwrap_it = self.params.get('mode') == 'v2'
+        unwrap_it = self.params.get('version') == 'v2'
         command = 'dummy'
 
         key, substring = tools.split_string_by_sep(line, self.params['sep_dict'], **self.params)
@@ -73,15 +73,17 @@ class ConfigJSONConverter:
             'raw_pattern': '"',
             'to_num': True,
             'always_unwrap': False,
-            'mode': 'v1',
+            'version': 'v1',
+            'is_raw': False
         }
         self.params = {**self.default_params, **(params or {})}
         self.parser = BlockParser(self.params)
 
     def jsonify(self, string: str, is_raw: bool = False, _unwrap_it = None) -> dict:
         # Для сырых строк возвращаем без изменений
-        # Необходимо когда иметь мешанина из разных типов строк
+        # Необходимо когда мешанина из разных типов строк
         # Пожалуй, это плохое решение
+        is_raw = is_raw or self.params['is_raw']
         if is_raw:
             return string
 
@@ -91,7 +93,7 @@ class ConfigJSONConverter:
         # Но, кажется, это не актуально и (можно|нужно) выпилить и 
         # использовать True по умолчанию
         if _unwrap_it is None:
-            _unwrap_it = {'v1': True, 'v2': True}[self.params['mode']]
+            _unwrap_it = {'v1': True, 'v2': True}[self.params['version']]
 
         out = []
         for line in tools.split_string_by_sep(string, self.params['sep_block'], **self.params):
@@ -105,8 +107,8 @@ class ConfigJSONConverter:
         v2. Всегда разворачиваем. Дополнительные действия зависят от команды в ключе
         См. parse_block() для деталей
         """
-        unwrap_v1 = self.params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
-        unwrap_v2 = self.params['mode'] == 'v2' and _unwrap_it
+        unwrap_v1 = self.params['version'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
+        unwrap_v2 = self.params['version'] == 'v2' and _unwrap_it
         if len(out) == 1 and (self.params['always_unwrap'] or unwrap_v1 or unwrap_v2):
             return out[0]
 

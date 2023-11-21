@@ -41,7 +41,7 @@ def parse_block(string, **params):
     def parse_dict(line):
         # For v1, always wrap dictionaries from the list
         # For v2, unwrap, then depends on the command in the key
-        unwrap_it = params.get('mode') == 'v2'
+        unwrap_it = params.get('version') == 'v2'
         command = 'dummy'
 
         key, substring = tools.split_string_by_sep(line, params['sep_dict'], **params)
@@ -94,7 +94,7 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
 
     ## Режимы работы
 
-    ### mode = 'v1'. По умолчанию.
+    ### version = 'v1'. По умолчанию.
     Все словари всегда будут завернуты в список!
 
     Строка: 'one = two, item = {count = 4.5, price = 100, name = {name1 = name}}'
@@ -114,7 +114,7 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
         ]
     }
 
-    ### mode = 'v2'
+    ### version = 'v2'
     Разворачивает все списки единичной длины.
     Для заворачивания необходимо указать в ключе команду 'list'.
     Сама команда (все что после указателя команды) в итоговом JSON будет отрезано.
@@ -145,7 +145,7 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
     Нужно ли вытаскивать словари из списков единичной длины.
     False (по умолчанию) вытаскивает из списков все обьекты КРОМЕ словарей.
     True - вынимает из список ВСЕ типы обьектов, включая словари.
-    ВАЖНО! Игнорирует команды mode = v2, если список можно развернуть, он будет развернут!
+    ВАЖНО! Игнорирует команды version = v2, если список можно развернуть, он будет развернут!
 
     Строка: 'one!list = two, item = {count = 4.5, price = 100, name!list = {name1 = name}}'
 
@@ -246,10 +246,10 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
             'raw_pattern': '"',
             'to_num': True,
             'always_unwrap': False,
-            'mode': 'v1',
+            'version': 'v1',
         }
         params = {**default_params, **params}
-        _unwrap_it = {'v1': True, 'v2': True}[params['mode']]
+        _unwrap_it = {'v1': True, 'v2': True}[params['version']]
 
     out = []
     for line in tools.split_string_by_sep(string, params['sep_block'], **params):
@@ -263,8 +263,8 @@ def jsonify(string: str, _unwrap_it=None, **params) -> dict:
     v2. Всегда разворачиваем. Дополнительные действия зависят от команды в ключе
     См. parse_block() для деталей
     """
-    unwrap_v1 = params['mode'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
-    unwrap_v2 = params['mode'] == 'v2' and _unwrap_it
+    unwrap_v1 = params['version'] == 'v1' and (type(out[0]) not in (dict, ) or _unwrap_it)
+    unwrap_v2 = params['version'] == 'v2' and _unwrap_it
     if len(out) == 1 and (params['always_unwrap'] or unwrap_v1 or unwrap_v2):
         return out[0]
 

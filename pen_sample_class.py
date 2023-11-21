@@ -55,7 +55,7 @@ strings_txt = [
     ]
 
 # Usage example:
-converter = ConfigJSONConverter({'mode': 'v2'})
+converter = ConfigJSONConverter({'version': 'v2'})
 
 for string in strings_in:
     result = converter.jsonify(string)
